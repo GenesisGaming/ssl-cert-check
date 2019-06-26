@@ -639,9 +639,16 @@ usage()
 #          has expired
 # Arguments:
 #   $1 -> Server name
-#   $2 -> TCP port to connect to
+#   $2 -> TCP port to connect to (or some protocol)
+#   $3 -> Host to connect to
 ##########################################################################
 check_server_status() {
+
+    host="${1}"
+    if [ ! -z "${3}" ]
+    then
+        host="${3}"
+    fi
 
     if [ "_${2}" = "_smtp" ] || [ "_${2}" = "_25" ]; then
         TLSFLAG="-starttls smtp"
@@ -660,7 +667,7 @@ check_server_status() {
     if [ "${TLSSERVERNAME}" = "FALSE" ]; then
 	TLSFLAG=(s_client -crlf -connect "${1}":"${2}")
     else
-        TLSFLAG=(s_client -crlf -connect "${1}":"${2}" -servername "${1}")
+        TLSFLAG=(s_client -crlf -connect "${host}":"${2}" -servername "${1}")
     fi
 
     echo "" | "${OPENSSL}" "${TLSFLAG[@]}" 2> "${ERROR_TMP}" 1> "${CERT_TMP}"
@@ -910,11 +917,15 @@ elif [ -f "${SERVERFILE}" ]; then
     "${GREP}" -E -v '(^#|^$)' "${SERVERFILE}" | while read -r LINE; do
         HOST=${LINE%% *}
         PORT=${LINE#* }
+        PORT=${PORT%% *}
+        SERVER=${LINE##* }
+        if [ "${SERVER}" == "${PORT}" ]; then SERVER=""; fi
+
         IFS=" "
         if [ "$PORT" = "FILE" ]; then
             check_file_status "${HOST}" "FILE" "${HOST}"
         else
-            check_server_status "${HOST}" "${PORT}"
+            check_server_status "${HOST}" "${PORT}" "${SERVER}"
         fi
     done
     IFS="${OLDIFS}"
