@@ -496,9 +496,9 @@ prints()
     if [ "${QUIET}" != "TRUE" ] && [ "${ISSUER}" = "TRUE" ] && [ "${VALIDATION}" != "TRUE" ]; then
         MIN_DATE=$(echo "$4" | ${AWK} '{ print $1, $2, $4 }')
         if [ "${NAGIOS}" == "TRUE" ]; then
-            ${PRINTF} "%-35s %-17s %-8s %-11s %-4s %-30s\n" "$1:$2 $7" "$6" "$3" "$MIN_DATE" \|days="$5"
+            ${PRINTF} "%-35s %-17s %-8s %-11s %-4s %-30s\n" "$1:$2 $9" "$6" "$3" "$MIN_DATE" \|days="$5"
         else
-            ${PRINTF} "%-35s %-17s %-8s %-11s %-4s %-30s\n" "$1:$2 $7" "$6" "$3" "$MIN_DATE" "$5"
+            ${PRINTF} "%-35s %-17s %-8s %-11s %-4s %-30s\n" "$1:$2 $9" "$6" "$3" "$MIN_DATE" "$5"
         fi
     elif [ "${QUIET}" != "TRUE" ] && [ "${ISSUER}" = "TRUE" ] && [ "${VALIDATION}" == "TRUE" ]; then
         ${PRINTF} "%-35s %-35s %-32s %-17s\n" "$1:$2" "$9" "$8" "$6"
