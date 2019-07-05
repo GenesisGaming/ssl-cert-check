@@ -305,6 +305,10 @@ CERTTYPE="pem"
 # Protocol version to use (cmdline: -v)
 VERSION="-tls1_1"
 
+SLACKURL="https://hooks.slack.com/services/"
+
+SLACKTOKEN="T0463UXNP/BL6GMRV47/QmMnwBcxokZbyZR7DW9OYpor"
+
 # Location of system binaries
 AWK=$(command -v awk)
 DATE=$(command -v date)
@@ -481,29 +485,32 @@ date_diff()
 #   $4 -> Date when certificate will expire
 #   $5 -> Days left until the certificate will expire
 #   $6 -> Issuer of the certificate
+#   $7 -> Servername of request
 #####################################################################
 prints()
 {
     if [ "${NAGIOSSUMMARY}" == "TRUE" ]; then
         return
     fi
-
+    
     if [ "${QUIET}" != "TRUE" ] && [ "${ISSUER}" = "TRUE" ] && [ "${VALIDATION}" != "TRUE" ]; then
         MIN_DATE=$(echo "$4" | ${AWK} '{ print $1, $2, $4 }')
         if [ "${NAGIOS}" == "TRUE" ]; then
-            ${PRINTF} "%-35s %-17s %-8s %-11s %-4s %-30s\n" "$1:$2" "$6" "$3" "$MIN_DATE" \|days="$5"
+            ${PRINTF} "%-35s %-17s %-8s %-11s %-4s %-30s\n" "$1:$2 $7" "$6" "$3" "$MIN_DATE" \|days="$5"
         else
-            ${PRINTF} "%-35s %-17s %-8s %-11s %-4s %-30s\n" "$1:$2" "$6" "$3" "$MIN_DATE" "$5"
+            ${PRINTF} "%-35s %-17s %-8s %-11s %-4s %-30s\n" "$1:$2 $7" "$6" "$3" "$MIN_DATE" "$5"
         fi
     elif [ "${QUIET}" != "TRUE" ] && [ "${ISSUER}" = "TRUE" ] && [ "${VALIDATION}" == "TRUE" ]; then
-        ${PRINTF} "%-35s %-35s %-32s %-17s\n" "$1:$2" "$7" "$8" "$6"
+        ${PRINTF} "%-35s %-35s %-32s %-17s\n" "$1:$2" "$9" "$8" "$6"
 
     elif [ "${QUIET}" != "TRUE" ] && [ "${VALIDATION}" != "TRUE" ]; then
         MIN_DATE=$(echo "$4" | "${AWK}" '{ print $1, $2, $4 }')
         if [ "${NAGIOS}" == "TRUE" ]; then
-            ${PRINTF} "%-47s %-12s %-12s %-4s %-30s\n" "$1:$2" "$3" "$MIN_DATE" \|days="$5"
+            #${PRINTF} "%-47s %-12s %-12s %-4s %-30s\n" "$1:$2 $9" "$3" "$MIN_DATE" \|days="$5"
+            ${PRINTF} "%-55s %-12s %-12s %-4s %-30s\n" "$1:$2 $9" "$3" "$MIN_DATE" \|days="$5"
         else
-            ${PRINTF} "%-47s %-12s %-12s %-4s %-30s\n" "$1:$2" "$3" "$MIN_DATE" "$5"
+            #${PRINTF} "%-47s %-12s %-12s %-4s %-30s\n" "$1:$2 $9" "$3" "$MIN_DATE" "$5"
+            ${PRINTF} "%-55s %-12s %-12s %-4s %-30s\n" "$1:$2 $9" "$3" "$MIN_DATE" "$5"
         fi
     elif [ "${QUIET}" != "TRUE" ] && [ "${VALIDATION}" == "TRUE" ]; then
         ${PRINTF} "%-35s %-35s %-32s\n" "$1:$2" "$7" "$8"
@@ -518,6 +525,11 @@ prints()
 ####################################################
 print_heading()
 {
+
+    if [ ${1} -a -f ${1} ]
+    then
+    echo -e "\n**** file: "${1}" ****"
+    fi 
     if [ "${NOHEADER}" != "TRUE" ]; then
         if [ "${QUIET}" != "TRUE" ] && [ "${ISSUER}" = "TRUE" ] && [ "${NAGIOS}" != "TRUE" ] && [ "${VALIDATION}" != "TRUE" ]; then
             ${PRINTF} "\n%-35s %-17s %-8s %-11s %-4s\n" "Host" "Issuer" "Status" "Expires" "Days"
@@ -528,8 +540,9 @@ print_heading()
             echo "----------------------------------- ----------------------------------- -------------------------------- -----------------"
 
         elif [ "${QUIET}" != "TRUE" ] && [ "${NAGIOS}" != "TRUE" ] && [ "${VALIDATION}" != "TRUE" ]; then
-            ${PRINTF} "\n%-47s %-12s %-12s %-4s\n" "Host" "Status" "Expires" "Days"
-            echo "----------------------------------------------- ------------ ------------ ----"
+            #${PRINTF} "\n%-47s %-12s %-12s %-4s\n" "Host" "Status" "Expires" "Days"
+            ${PRINTF} "\n%-55s %-12s %-12s %-4s\n" "Host" "Status" "Expires" "Days"
+            echo "------------------------------------------------------- ------------ ------------ ----"
 
         elif [ "${QUIET}" != "TRUE" ] && [ "${NAGIOS}" != "TRUE" ] && [ "${VALIDATION}" == "TRUE" ]; then
             ${PRINTF} "\n%-35s %-35s %-32s\n" "Host" "Common Name" "Serial #"
@@ -607,13 +620,15 @@ set_summary()
 ##########################################
 usage()
 {
-    echo "Usage: $0 [ -e email address ] [-E sender email address] [ -x days ] [-q] [-a] [-b] [-h] [-i] [-n] [-N] [-v]"
-    echo "       { [ -s common_name ] && [ -p port] } || { [ -f cert_file ] } || { [ -c cert file ] } || { [ -d cert dir ] }"
+    echo "Usage: $0 [ -e email address ] [-E sender email address] [ -x days ] [-q] [-a] [-A] [-b] [-h] [-i] [-n] [-N] [-v]"
+    echo "       { [ -s common_name ] && [ -p port] } || { [ -f cert_file ] } || { [ -D cert_file dir] } || { [ -c cert file ] } || { [ -d cert dir ] }"
     echo ""
     echo "  -a                : Send a warning message through E-mail"
+    echo "  -A                : Send a warning message through Slack"
     echo "  -b                : Will not print header"
     echo "  -c cert file      : Print the expiration date for the PEM or PKCS12 formatted certificate in cert file"
     echo "  -d cert directory : Print the expiration date for the PEM or PKCS12 formatted certificates in cert directory"
+    echo "  -D dir w/ certs files      : Directory full of Files with lists of FQDNs and ports as with -f"
     echo "  -e E-mail address : E-mail address to send expiration notices"
     echo "  -E E-mail sender  : E-mail address of the sender"
     echo "  -f cert file      : File with a list of FQDNs and ports"
@@ -694,7 +709,7 @@ check_server_status() {
         prints "${1}" "${2}" "Unable to resolve the DNS name ${1}" "Unknown"
         set_returncode 3
     else
-        check_file_status "${CERT_TMP}" "${1}" "${2}"
+        check_file_status "${CERT_TMP}" "${1}" "${2}" "${3}"
     fi
 }
 
@@ -710,6 +725,7 @@ check_file_status() {
     CERTFILE="${1}"
     HOST="${2}"
     PORT="${3}"
+    SRVNM="${4}"
 
     ### Check to make sure the certificate file exists
     if [ ! -r "${CERTFILE}" ] || [ ! -s "${CERTFILE}" ]; then
@@ -770,25 +786,39 @@ check_file_status() {
     CERTJULIAN=$(date2julian "${MONTH#0}" "${2#0}" "${4}")
     CERTDIFF=$(date_diff "${NOWJULIAN}" "${CERTJULIAN}")
 
+    #if checking domain with another servername in the header, set message appropriately
+    if [ ${SRVNM} ]
+    then
+        srvMsg=" with servername: "${SRVNM}" "
+    fi
+
     if [ "${CERTDIFF}" -lt 0 ]; then
         if [ "${ALARM}" = "TRUE" ]; then
-            send_mail "${SENDER}" "${ADMIN}" "Certificate for ${HOST} \"(CN: ${COMMONNAME})\" has expired!" \
-                "The SSL certificate for ${HOST} \"(CN: ${COMMONNAME})\" has expired!"
+            send_mail "${SENDER}" "${ADMIN}" "Certificate for ${HOST} ${srvMsg}\"(CN: ${COMMONNAME})\" has expired!" \
+                "The SSL certificate for ${HOST} ${srvMsg}\"(CN: ${COMMONNAME})\" has expired!"
+        fi
+        if [ "${ALARMSLACK}" = "TRUE" ]; then
+             alertSlack "The SSL certificate for ${HOST} ${srvMsg}(CN: ${COMMONNAME}) has expired!"
         fi
 
-        prints "${HOST}" "${PORT}" "Expired" "${CERTDATE}" "${CERTDIFF}" "${CERTISSUER}" "${COMMONNAME}" "${SERIAL}"
+        prints "${HOST}" "${PORT}" "Expired" "${CERTDATE}" "${CERTDIFF}" "${CERTISSUER}" "${COMMONNAME}" "${SERIAL}" "${SRVNM}"
         RETCODE_LOCAL=2
 
     elif [ "${CERTDIFF}" -lt "${WARNDAYS}" ]; then
         if [ "${ALARM}" = "TRUE" ]; then
-            send_mail "${SENDER}" "${ADMIN}" "Certificate for ${HOST} \"(CN: ${COMMONNAME})\" will expire in ${CERTDIFF}-days or less" \
-                "The SSL certificate for ${HOST} \"(CN: ${COMMONNAME})\" will expire on ${CERTDATE}"
+            send_mail "${SENDER}" "${ADMIN}" "Certificate for ${HOST} ${srvMsg}\"(CN: ${COMMONNAME})\" will expire in ${CERTDIFF}-days or less" \
+                "The SSL certificate for ${HOST} ${srvMsg}\"(CN: ${COMMONNAME})\" will expire in ${CERTDIFF} days, on ${CERTDATE}"
         fi
-        prints "${HOST}" "${PORT}" "Expiring" "${CERTDATE}" "${CERTDIFF}" "${CERTISSUER}" "${COMMONNAME}" "${SERIAL}"
+        if [ "${ALARMSLACK}" = "TRUE" ]; then
+            alertSlack "The SSL certificate for ${HOST} ${srvMsg}(CN: ${COMMONNAME}) will expire in ${CERTDIFF} days, on ${CERTDATE}"
+        fi
+
+
+        prints "${HOST}" "${PORT}" "Expiring" "${CERTDATE}" "${CERTDIFF}" "${CERTISSUER}" "${COMMONNAME}" "${SERIAL}" "${SRVNM}"
         RETCODE_LOCAL=1
 
     else
-        prints "${HOST}" "${PORT}" "Valid" "${CERTDATE}" "${CERTDIFF}" "${CERTISSUER}" "${COMMONNAME}" "${SERIAL}"
+        prints "${HOST}" "${PORT}" "Valid" "${CERTDATE}" "${CERTDIFF}" "${CERTISSUER}" "${COMMONNAME}" "${SERIAL}" "${SRVNM}"
         RETCODE_LOCAL=0
     fi
 
@@ -797,19 +827,64 @@ check_file_status() {
     set_summary "${RETCODE_LOCAL}" "${HOST}" "${PORT}" "${MIN_DATE}" "${CERTDIFF}"
 }
 
+
+#####################
+#Goes through the file and checks the domains  within the files
+#####################
+checkFileDomains(){
+    OLDIFS="${IFS}"
+    IFS=$'\n'
+    #for LINE in $(grep -E -v '(^#|^$)' "${SERVERFILE}")
+    "${GREP}" -E -v '(^#|^$)' "${SERVERFILE}" | "${GREP}" -v "^$" | while read -r LINE; do
+        HOST=${LINE%% *}
+        PORT=${LINE#* }
+        PORT=${PORT%% *}
+        SERVER=${LINE##* }
+
+
+        if [ `echo $LINE | grep -Eico "^[ \t\n]+$"` -le 0 ]
+        then 
+            if [ "${SERVER}" == "${PORT}" ]; then SERVER=""; fi
+
+            IFS=" "
+            if [ "$PORT" = "FILE" ]; then
+                check_file_status "${HOST}" "FILE" "${HOST}"
+            else
+                check_server_status "${HOST}" "${PORT}" "${SERVER}"
+            fi
+        fi
+    done
+    IFS="${OLDIFS}"
+}
+
+
+# sending message to slack
+alertSlack(){
+    if [ -z "${1}" ]
+    then
+    return 1;    
+    fi
+    msg='{"text":"'${1}'"}'
+    curl -X POST -H 'Content-type: application/json' --data "${msg}"  ${SLACKURL}${SLACKTOKEN}
+}
+
+
+
 #################################
 ### Start of main program
 #################################
-while getopts abinNv:e:E:f:c:d:hk:p:s:S:t:qx:V option
+while getopts aAbinNv:e:E:f:c:d:D:hk:p:s:S:t:qx:V option
 do
     case "${option}" in
         a) ALARM="TRUE";;
+        A) ALARMSLACK="TRUE";;
         b) NOHEADER="TRUE";;
         c) CERTFILE=${OPTARG};;
         d) CERTDIRECTORY=${OPTARG};;
         e) ADMIN=${OPTARG};;
-     E) SENDER=${OPTARG};;
+        E) SENDER=${OPTARG};;
         f) SERVERFILE=$OPTARG;;
+        D) FILEDIR=${OPTARG};;
         h) usage
            exit 1;;
         i) ISSUER="TRUE";;
@@ -908,27 +983,21 @@ if [ "${HOST}" != "" ] && [ "${PORT}" != "" ]; then
 ### If a file is passed to the "-f" option on the command line, check
 ### each certificate or server / port combination in the file to see if
 ### they are about to expire
+elif [ -d "${FILEDIR}" ]; then
+    
+    ls -p ${FILEDIR}|grep -v / |while read -r LINE
+        do
+        SERVERFILE=${FILEDIR}'/'$LINE
+        print_heading $SERVERFILE
+        checkFileDomains
+        print_summary
+    done
+
 elif [ -f "${SERVERFILE}" ]; then
     print_heading
 
-    IFS=$'\n'
+    checkFileDomains 
 
-    #for LINE in $(grep -E -v '(^#|^$)' "${SERVERFILE}")
-    "${GREP}" -E -v '(^#|^$)' "${SERVERFILE}" | "${GREP}" -v "^$" | while read -r LINE; do
-        HOST=${LINE%% *}
-        PORT=${LINE#* }
-        PORT=${PORT%% *}
-        SERVER=${LINE##* }
-        if [ "${SERVER}" == "${PORT}" ]; then SERVER=""; fi
-
-        IFS=" "
-        if [ "$PORT" = "FILE" ]; then
-            check_file_status "${HOST}" "FILE" "${HOST}"
-        else
-            check_server_status "${HOST}" "${PORT}" "${SERVER}"
-        fi
-    done
-    IFS="${OLDIFS}"
     print_summary
 ### Check to see if the certificate in CERTFILE is about to expire
 elif [ "${CERTFILE}" != "" ]; then
