@@ -12,6 +12,7 @@ Usage: ./ssl-cert-check [ -e email address ] [ -E sender email address ] [ -x da
   -b                : Will not print header
   -c cert file      : Print the expiration date for the PEM or PKCS12 formatted certificate in cert file
   -d cert directory : Print the expiration date for the PEM or PKCS12 formatted certificates in cert directory
+  -D file directory : like -f but wit a drirectory of file instead of the regular.
   -e E-mail address : E-mail address to send expiration notices
   -E E-mail address : Sender E-mail address
   -f cert file      : File with a list of FQDNs and ports
