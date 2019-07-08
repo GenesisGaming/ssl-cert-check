@@ -9,6 +9,7 @@ Usage: ./ssl-cert-check [ -e email address ] [ -E sender email address ] [ -x da
        { [ -s common_name ] && [ -p port] } || { [ -f cert_file ] } || { [ -c cert file ] } || { [ -d cert dir ] }"
 
   -a                : Send a warning message through E-mail
+  -A                : Send a warning message through slack
   -b                : Will not print header
   -c cert file      : Print the expiration date for the PEM or PKCS12 formatted certificate in cert file
   -d cert directory : Print the expiration date for the PEM or PKCS12 formatted certificates in cert directory
