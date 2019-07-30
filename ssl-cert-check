@@ -307,7 +307,8 @@ VERSION="-tls1_1"
 
 SLACKURL="https://hooks.slack.com/services/"
 
-SLACKTOKEN="T0463UXNP/BL6GMRV47/QmMnwBcxokZbyZR7DW9OYpor"
+SLACKTOKEN="T0463UXNP/BLW12LDCG/p3XxdJ8Hcxmqpvr6N4LKRsb8"
+
 
 # Location of system binaries
 AWK=$(command -v awk)
