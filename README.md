@@ -1,3 +1,6 @@
+# SUPERSEEDED BY https://github.com/GenesisGaming/IT_OPERATIONS/tree/master/automation/endpoint-monitor
+
+
 # SSL Certification Expiration Checker:
 
 ssl-cert-check is a Bourne shell script that can be used to report on expiring SSL certificates. The script was designed to be run from cron and can e-mail warnings or log alerts through nagios.  
